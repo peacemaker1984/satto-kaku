@@ -191,6 +191,7 @@
 
     <nav class="toolbar" aria-label="操作">
       <button id="newBtn" type="button">新規</button>
+      <button id="restoreBtn" type="button" title="直前の内容を復元">復元</button>
       <label class="file-label" for="openFile">開く</label>
       <input id="openFile" type="file" accept=".txt,.md,text/plain,text/markdown">
       <button id="saveBtn" type="button">保存</button>
@@ -217,6 +218,8 @@
 
       const STORAGE_TEXT = "quick_editor_text_v1";
       const STORAGE_TITLE = "quick_editor_title_v1";
+      const BACKUP_TEXT = "quick_editor_backup_text_v1";
+      const BACKUP_TITLE = "quick_editor_backup_title_v1";
 
       const editor = document.getElementById("editor");
       const title = document.getElementById("title");
@@ -318,17 +321,48 @@
 
       title.addEventListener("input", autoSave);
 
+      function saveBackup() {
+        if (editor.value || title.value) {
+          localStorage.setItem(BACKUP_TEXT, editor.value);
+          localStorage.setItem(BACKUP_TITLE, title.value);
+        }
+      }
+
       newBtn.addEventListener("click", () => {
         if ((editor.value || title.value) &&
-            !confirm("現在の内容を消して、新しいメモを作りますか？")) {
+            !confirm("現在の内容をバックアップして、新しいメモを作りますか？")) {
           return;
         }
+        saveBackup();
         editor.value = "";
         title.value = "";
         localStorage.removeItem(STORAGE_TEXT);
         localStorage.removeItem(STORAGE_TITLE);
         updateCount();
-        status.textContent = "新しいメモ";
+        status.textContent = "直前の内容をバックアップしました";
+        editor.focus();
+      });
+
+      restoreBtn.addEventListener("click", () => {
+        const backupText = localStorage.getItem(BACKUP_TEXT);
+        const backupTitle = localStorage.getItem(BACKUP_TITLE);
+
+        if (backupText === null && backupTitle === null) {
+          status.textContent = "復元できるバックアップはありません";
+          return;
+        }
+
+        if ((editor.value || title.value) &&
+            !confirm("現在の内容を直前のバックアップで置き換えますか？")) {
+          return;
+        }
+
+        editor.value = backupText || "";
+        title.value = backupTitle || "";
+        localStorage.setItem(STORAGE_TEXT, editor.value);
+        localStorage.setItem(STORAGE_TITLE, title.value);
+        updateCount();
+        status.textContent = "直前の内容を復元しました";
         editor.focus();
       });
 
@@ -340,6 +374,7 @@
         if (!file) return;
 
         try {
+          saveBackup();
           editor.value = await file.text();
           title.value = file.name.replace(/\.[^.]+$/, "");
           updateCount();
