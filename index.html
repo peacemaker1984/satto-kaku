@@ -138,10 +138,35 @@
     footer {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       gap: 12px;
       color: var(--sub);
       font-size: .82rem;
       padding: 0 3px;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    #count {
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px dotted var(--sub);
+    }
+
+    #count:hover {
+      color: var(--text);
+    }
+
+    .brand {
+      font-size: .72rem;
+      letter-spacing: .12em;
+      white-space: nowrap;
+      opacity: .72;
     }
 
     .status-right { text-align: right; }
@@ -178,7 +203,10 @@
       placeholder="ここに書く。内容はこの端末のブラウザに自動保存されます。"></textarea>
 
     <footer>
-      <span id="count">0文字・1行</span>
+      <div class="footer-left">
+        <span id="count" title="クリックすると400字詰め原稿用紙換算を表示">0文字・1行</span>
+        <span class="brand">HAL WORKS</span>
+      </div>
       <span class="status-right" id="status">自動保存</span>
     </footer>
   </main>
@@ -200,6 +228,7 @@
       const copyBtn = document.getElementById("copyBtn");
 
       let saveTimer;
+      let showManuscriptPages = false;
 
       function restore() {
         editor.value = localStorage.getItem(STORAGE_TEXT) ?? "";
@@ -211,7 +240,21 @@
         const text = editor.value;
         const chars = [...text].length;
         const lines = text === "" ? 1 : text.split(/\r\n|\r|\n/).length;
-        count.textContent = `${chars.toLocaleString("ja-JP")}文字・${lines.toLocaleString("ja-JP")}行`;
+
+        if (showManuscriptPages) {
+          const pages = chars / 400;
+          const pageText = pages === 0
+            ? "0枚"
+            : `約${pages.toLocaleString("ja-JP", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+              })}枚`;
+          count.textContent = `400字詰め原稿用紙 ${pageText}`;
+          count.title = "文字数・行数表示に戻す";
+        } else {
+          count.textContent = `${chars.toLocaleString("ja-JP")}文字・${lines.toLocaleString("ja-JP")}行`;
+          count.title = "クリックすると400字詰め原稿用紙換算を表示";
+        }
       }
 
       function autoSave() {
@@ -262,6 +305,11 @@
           status.textContent = "全文をコピーしました";
         }
       }
+
+      count.addEventListener("click", () => {
+        showManuscriptPages = !showManuscriptPages;
+        updateCount();
+      });
 
       editor.addEventListener("input", () => {
         updateCount();
